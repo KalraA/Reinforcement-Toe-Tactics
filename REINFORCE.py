@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+#This is someone else's code, I just made a bunch of changes! There were a few errors.
 import tensorflow as tf
 
 class PolicyGradientREINFORCE(object):
