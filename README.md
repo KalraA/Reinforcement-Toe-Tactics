@@ -5,11 +5,11 @@ Prelimary stages of using Deep RL for my gomoku AI. The first stage is Tic Tac T
 #### Files:
 DQN.py is the deep q network training 
 
-pg_reinforce.py is the class for policy gradient network 
+REINFORCE.py is the class for williams REINFORCE algorithm used as part of alpha go
 
 project.py uses the policy gradient to train 
 
-train_bot.py is my own deep RL algorithm 
+train.py is my own deep RL algorithm, not that great.
 
 envs has the Tic Tac Toe env. 
 
