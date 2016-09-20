@@ -1,10 +1,12 @@
 import random
 import sys
 import copy
+import numpy as np
 
 class Game:
     "Tic-Tac-Toe class. This class holds the user interaction, and game logic"
     def __init__(self, randMove, bot1, bot2):
+        self.name = 'Tic Tac Toe'
         self.board = [' '] * 9
         self.player_name = ''
         self.player_marker = 'X'
