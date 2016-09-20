@@ -13,6 +13,7 @@ env = TicTacToe()
 # C is the number of timesteps we update the frozen model
 C = 50
 
+#The model we care about 
 training_model = Sequential()
 training_model.add(Dense(20, input_dim=18))
 training_model.add(Activation('relu'))
@@ -22,6 +23,7 @@ training_model.add(Dense(9))
 training_model.add(Activation('linear'))
 training_model.compile(loss='mse', optimizer = 'rmsprop', metrics=['accuracy'])
 
+# Q^ or the frozen model
 frozen_model = Sequential()
 frozen_model.add(Dense(20, input_dim=18))
 frozen_model.add(Activation('relu'))
@@ -31,13 +33,13 @@ frozen_model.add(Dense(9))
 frozen_model.add(Activation('linear'))
 frozen_model.compile(loss='mse', optimizer = 'rmsprop')
 
-max_episodes = 1000
-max_steps = 5
-ills = 0
-discount = 0.97
-scores= deque(maxlen=100)
+max_episodes = 1000 #max games
+max_steps = 5 #max length of a game
+ills = 0 #number of illegal moves
+discount = 0.97 #gamme for gamma*Q(s', a') in the loss f'n
+scores= deque(maxlen=100) #just a metric for checking scores
 
-def clip(x):
+def clip(x): #clip reward to rannge [1, -1]
 	if x > 1:
 		return 1
 	elif x < -1:
@@ -45,9 +47,9 @@ def clip(x):
 	else:
 		return x
 
-epsilon = 1.0
-eps = 0
-moves = 0
+epsilon = 1.0 #% of random moves
+eps = 0 #number of random moves played
+moves = 0 #number of non-random moves played
 for episode in xrange(max_episodes):
 	#initialize
 	state, legal_moves = env.reset()
@@ -72,8 +74,10 @@ for episode in xrange(max_episodes):
 		ills = 0
 	#play a game
 	for timestep in xrange(max_steps):
+		#prep input
 		inp = np.array([state])
 		preds = training_model.predict(inp)[0]
+		#random variable
 		a = random.random()
 		# print a
 		if a < epsilon:
@@ -84,33 +88,37 @@ for episode in xrange(max_episodes):
 			#print inp
 			action = np.argmax(preds)
 			moves += 1
+		#epsilon decay until it's 0.1
 		epsilon = max(epsilon*0.995, 0.1)
-		if episode % 10 == 0:
-			print action
-			print preds
+#		if episode % 10 == 0:
+#			print action
+#			print preds
+
+		#play a move
 		next_state, done, legal_moves = env.step(action)
 		if episode % 10 == 0:
 			env.render()
 		#get reward
 		reward = 0
-		if done == -1:
+		if done == -1: #illegal move
 			reward = -1
 			scores.append(0)
 			ills += 1
-		elif done == 2:
+		elif done == 2: #loss
 			reward = -1
 			scores.append(0)
-		elif done == 1:
+		elif done == 1: #win
 			reward = 1
 			print 'ya'
 			scores.append(1)
-		elif done == 3:
+		elif done == 3: #tie
 			reward = 0.75
 			scores.append(0.5)
 		# if episode % 20 == 0:
 		# 	print reward
 		experience_replay.store(state, preds, reward, next_state)
-		replay = experience_replay.get_random_minibatch(32)
+		replay = experience_replay.get_random_minibatch(5) #of size 5
+		#X values are the states
 		X = np.array(map(lambda x: x[0], replay))
 		# print X
 		# print X
@@ -119,26 +127,16 @@ for episode in xrange(max_episodes):
 		r = 0
 		for s, a, r, _s in replay: #state action reward next_state
 			# print _s
-			if r == 0.0:
-				print r
-				print _s
-				r = np.max(frozen_model.predict(np.array([_s]))) + r
-			if episode % 10 == 11:
-				print 'b4'
-				print a
-				print 'rew'
-				print r
-				a[np.argmax(a)] = r
-				print 'aftr'
-				print a
-			else:
-				b = training_model.predict(np.array([s]))[0]
-				b[np.argmax(a)] = clip(r)
+			if r == 0.0: #update the reward if it's a non terminal step. the reward is 0 for all non terminal steps
+				r = np.max(frozen_model.predict(np.array([_s]))) + r # gamma*Q(s', a)
+			b = training_model.predict(np.array([s]))[0] #setting the gradient of all the non action values to 0, kinda hacky but works
+			b[np.argmax(a)] = clip(r) #setting the action value to the Q value of the next state. Teaching NN to predict future Q vals
 			# print r
 			y.append(a)
 			i += 1
 		y = np.array(y)
 		state = next_state
+		#train the model
 		if len(X) > 0:
 			training_model.train_on_batch(X, y)
 		if done != 0:
